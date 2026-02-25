@@ -4,20 +4,25 @@ using System.Windows.Forms;
 
 namespace WeifenLuo.WinFormsUI.Docking
 {
-    public interface IDockContent
+    public interface IDockContent : IContextMenuStripHost
     {
-        DockContentHandler DockHandler	{	get;	}
+        DockContentHandler DockHandler { get; }
         void OnActivated(EventArgs e);
         void OnDeactivate(EventArgs e);
     }
 
+    public interface IContextMenuStripHost
+    {
+        void ApplyTheme();
+    }
+
     public interface INestedPanesContainer
     {
-        DockState DockState	{	get;	}
-        Rectangle DisplayingRectangle	{	get;	}
-        NestedPaneCollection NestedPanes	{	get;	}
-        VisibleNestedPaneCollection VisibleNestedPanes	{	get;	}
-        bool IsFloat	{	get;	}
+        DockState DockState { get; }
+        Rectangle DisplayingRectangle { get; }
+        NestedPaneCollection NestedPanes { get; }
+        VisibleNestedPaneCollection VisibleNestedPanes { get; }
+        bool IsFloat { get; }
     }
 
     public interface IDragSource
@@ -25,9 +30,10 @@ namespace WeifenLuo.WinFormsUI.Docking
         Control DragControl { get; }
     }
 
-    internal interface IDockDragSource : IDragSource
+    public interface IDockDragSource : IDragSource
     {
         Rectangle BeginDrag(Point ptMouse);
+        void OnDragging(Point ptMouse);
         void EndDrag();
         bool IsDockStateValid(DockState dockState);
         bool CanDockTo(DockPane pane);
@@ -43,5 +49,12 @@ namespace WeifenLuo.WinFormsUI.Docking
         bool IsVertical { get; }
         Rectangle DragLimitBounds { get; }
         void MoveSplitter(int offset);
+    }
+
+    public interface ISplitterHost : ISplitterDragSource
+    {
+        DockPanel DockPanel { get; }
+        DockState DockState { get; }
+        bool IsDockWindow { get; }
     }
 }

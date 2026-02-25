@@ -1,8 +1,6 @@
 using System;
-using System.Collections;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Diagnostics.CodeAnalysis;
 
@@ -30,7 +28,7 @@ namespace WeifenLuo.WinFormsUI.Docking
 
             m_nestedPanes = new NestedPaneCollection(this);
 
-            FormBorderStyle = FormBorderStyle.SizableToolWindow;
+            AllowChangeLayout = dockPanel.AllowChangeLayout;
             ShowInTaskbar = false;
             if (dockPanel.RightToLeft != RightToLeft)
                 RightToLeft = dockPanel.RightToLeft;
@@ -55,6 +53,11 @@ namespace WeifenLuo.WinFormsUI.Docking
             if (pane != null)
                 pane.FloatWindow = this;
 
+            if (PatchController.EnableFontInheritanceFix == true)
+            {
+                Font = dockPanel.Font;
+            }
+
             ResumeLayout();
         }
 
@@ -74,6 +77,18 @@ namespace WeifenLuo.WinFormsUI.Docking
         {
             get	{	return m_allowEndUserDocking;	}
             set	{	m_allowEndUserDocking = value;	}
+        }
+
+        private bool m_allowChangeLayout = true;
+        public bool AllowChangeLayout {
+            get { return m_allowChangeLayout; }
+            set {
+                if ( m_allowChangeLayout == value )
+                    return;
+
+                m_allowChangeLayout = value;
+                FormBorderStyle = m_allowChangeLayout ? FormBorderStyle.Sizable : FormBorderStyle.FixedSingle;
+            }
         }
 
         private bool m_doubleClickTitleBarToDock = true;
@@ -152,17 +167,29 @@ namespace WeifenLuo.WinFormsUI.Docking
         [SuppressMessage("Microsoft.Globalization", "CA1303:DoNotPassLiteralsAsLocalizedParameters", MessageId = "System.Windows.Forms.Control.set_Text(System.String)")]
         internal void SetText()
         {
-            DockPane theOnlyPane = (VisibleNestedPanes.Count == 1) ? VisibleNestedPanes[0] : null;
+            DockPane activePane = null;
 
-            if (theOnlyPane == null || theOnlyPane.ActiveContent == null)
+            foreach (var pane in VisibleNestedPanes)
+            {
+                if (pane.IsActivated)
+                {
+                    activePane = pane;
+                    break;
+                }
+            }
+
+            if (activePane == null)
+                activePane = VisibleNestedPanes.Count > 0 ? VisibleNestedPanes[0] : null;
+
+            if (activePane == null || activePane.ActiveContent == null)
             {
                 Text = " ";	// use " " instead of string.Empty because the whole title bar will disappear when ControlBox is set to false.
                 Icon = null;
             }
             else
             {
-                Text = theOnlyPane.ActiveContent.DockHandler.TabText;
-                Icon = theOnlyPane.ActiveContent.DockHandler.Icon;
+                Text = activePane.ActiveContent.DockHandler.TabText;
+                Icon = activePane.ActiveContent.DockHandler.Icon;
             }
         }
 
@@ -190,7 +217,7 @@ namespace WeifenLuo.WinFormsUI.Docking
                             return;
 
                         uint result = Win32Helper.IsRunningOnMono ? 0 : NativeMethods.SendMessage(this.Handle, (int)Win32.Msgs.WM_NCHITTEST, 0, (uint)m.LParam);
-                        if (result == 2 && DockPanel.AllowEndUserDocking && this.AllowEndUserDocking)	// HITTEST_CAPTION
+                        if (result == 2 && DockPanel.AllowEndUserDocking && DockPanel.AllowChangeLayout && this.AllowEndUserDocking)	// HITTEST_CAPTION
                         {
                             Activate();
                             m_dockPanel.BeginDrag(this);
@@ -202,7 +229,7 @@ namespace WeifenLuo.WinFormsUI.Docking
                     }
                 case (int)Win32.Msgs.WM_NCRBUTTONDOWN:
                     {
-                        uint result = Win32Helper.IsRunningOnMono ? 0 : NativeMethods.SendMessage(this.Handle, (int)Win32.Msgs.WM_NCHITTEST, 0, (uint)m.LParam);
+                        uint result = Win32Helper.IsRunningOnMono ? Win32Helper.HitTestCaption(this) : NativeMethods.SendMessage(this.Handle, (int)Win32.Msgs.WM_NCHITTEST, 0, (uint)m.LParam);
                         if (result == 2)	// HITTEST_CAPTION
                         {
                             DockPane theOnlyPane = (VisibleNestedPanes.Count == 1) ? VisibleNestedPanes[0] : null;
@@ -217,6 +244,9 @@ namespace WeifenLuo.WinFormsUI.Docking
                         return;
                     }
                 case (int)Win32.Msgs.WM_CLOSE:
+                    if (!m_dockPanel.AllowChangeLayout && !m_dockPanel.CanCloseFloatWindowInLock)
+                        return;
+
                     if (NestedPanes.Count == 0)
                     {
                         base.WndProc(ref m);
@@ -243,8 +273,8 @@ namespace WeifenLuo.WinFormsUI.Docking
                     return;
                 case (int)Win32.Msgs.WM_NCLBUTTONDBLCLK:
                     {
-                        uint result = !DoubleClickTitleBarToDock || Win32Helper.IsRunningOnMono 
-                            ? 0
+                        uint result = !DoubleClickTitleBarToDock || !DockPanel.AllowChangeLayout || Win32Helper.IsRunningOnMono 
+                            ? Win32Helper.HitTestCaption(this)
                             : NativeMethods.SendMessage(this.Handle, (int)Win32.Msgs.WM_NCHITTEST, 0, (uint)m.LParam);
 
                         if (result != 2)	// HITTEST_CAPTION
@@ -362,14 +392,25 @@ namespace WeifenLuo.WinFormsUI.Docking
         }
 
         private int m_preDragExStyle;
+        private Point m_preDragPosition;
+        private Point m_dragStartPoint;
 
         Rectangle IDockDragSource.BeginDrag(Point ptMouse)
         {
+            m_preDragPosition = Location;
+            m_dragStartPoint = ptMouse;
             m_preDragExStyle = NativeMethods.GetWindowLong(this.Handle, (int)Win32.GetWindowLongIndex.GWL_EXSTYLE);
             NativeMethods.SetWindowLong(this.Handle, 
                                         (int)Win32.GetWindowLongIndex.GWL_EXSTYLE,
                                         m_preDragExStyle | (int)(Win32.WindowExStyles.WS_EX_TRANSPARENT | Win32.WindowExStyles.WS_EX_LAYERED) );
             return Bounds;
+        }
+
+        void IDockDragSource.OnDragging(Point ptMouse)
+        {
+            Location = new Point(
+                m_preDragPosition.X + (ptMouse.X - m_dragStartPoint.X),
+                m_preDragPosition.Y + (ptMouse.Y - m_dragStartPoint.Y));
         }
 
         void IDockDragSource.EndDrag()

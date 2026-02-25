@@ -2,10 +2,12 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
+using System.ComponentModel;
 
 namespace WeifenLuo.WinFormsUI.Docking
 {
     /// <include file='CodeDoc/AutoHideStripVS2003.xml' path='//CodeDoc/Class[@name="AutoHideStripVS2003"]/ClassDef/*'/>
+    [ToolboxItem(false)]
     internal class VS2003AutoHideStrip : AutoHideStripBase
     {
         private class TabVS2003 : Tab
@@ -198,6 +200,7 @@ namespace WeifenLuo.WinFormsUI.Docking
         /// <exclude/>
         protected override void OnPaint(PaintEventArgs e)
         {
+            base.OnPaint(e);
             Graphics g = e.Graphics;
             DrawTabStrip(g);
         }
@@ -454,12 +457,12 @@ namespace WeifenLuo.WinFormsUI.Docking
         }
 
         /// <exclude />
-        protected override IDockContent HitTest(Point ptMouse)
+        protected override IDockContent HitTest(Point point)
         {
             foreach(DockState state in DockStates)
             {
                 Rectangle rectTabStrip = GetLogicalTabStripRectangle(state, true);
-                if (!rectTabStrip.Contains(ptMouse))
+                if (!rectTabStrip.Contains(point))
                     continue;
 
                 foreach(Pane pane in GetPanes(state))
@@ -468,7 +471,7 @@ namespace WeifenLuo.WinFormsUI.Docking
                     {
                         Rectangle rectTab = GetTabRectangle(tab, true);
                         rectTab.Intersect(rectTabStrip);
-                        if (rectTab.Contains(ptMouse))
+                        if (rectTab.Contains(point))
                             return tab.Content;
                     }
                 }

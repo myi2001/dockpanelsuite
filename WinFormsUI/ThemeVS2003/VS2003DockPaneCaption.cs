@@ -4,9 +4,11 @@ using System.Windows.Forms;
 
 namespace WeifenLuo.WinFormsUI.Docking
 {
+    using System.ComponentModel;
     using WeifenLuo.WinFormsUI.ThemeVS2003;
 
     /// <include file='CodeDoc/DockPaneCaptionVS2003.xml' path='//CodeDoc/Class[@name="DockPaneCaptionVS2003"]/ClassDef/*'/>
+    [ToolboxItem(false)]
     internal class VS2003DockPaneCaption : DockPaneCaptionBase
     {
         #region consts
@@ -327,7 +329,7 @@ namespace WeifenLuo.WinFormsUI.Docking
             int height = rectCaption.Height - ButtonGapTop - ButtonGapBottom;
             if (buttonHeight < height)
             {
-                buttonWidth = buttonWidth * (height / buttonHeight);
+                buttonWidth = buttonWidth * height / buttonHeight;
                 buttonHeight = height;
             }
             m_buttonClose.SuspendLayout();

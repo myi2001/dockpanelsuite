@@ -1,38 +1,29 @@
-using System;
-
 namespace WeifenLuo.WinFormsUI.Docking
 {
     using System.Drawing;
     using System.Drawing.Drawing2D;
+    using WeifenLuo.WinFormsUI.ThemeVS2005;
 
     /// <summary>
     /// Visual Studio 2003 theme.
     /// </summary>
     public class VS2003Theme : ThemeBase
     {
-        /// <summary>
-        /// Applies the specified theme to the dock panel.
-        /// </summary>
-        /// <param name="dockPanel">The dock panel.</param>
-        public override void Apply(DockPanel dockPanel)
+        public VS2003Theme()
         {
-            if (dockPanel == null)
-            {
-                throw new NullReferenceException("dockPanel");
-            }
-
+            Skin = CreateVisualStudio2003();
             Measures.SplitterSize = 4;
-            dockPanel.Extender.DockPaneCaptionFactory = new VS2003DockPaneCaptionFactory();
-            dockPanel.Extender.AutoHideStripFactory = new VS2003AutoHideStripFactory();
-            dockPanel.Extender.AutoHideWindowFactory = null;
-            dockPanel.Extender.DockPaneStripFactory = new VS2003DockPaneStripFactory();
-            dockPanel.Extender.DockPaneSplitterControlFactory = null;
-            dockPanel.Extender.DockWindowSplitterControlFactory = null;
-            dockPanel.Extender.DockWindowFactory = null;
-            dockPanel.Extender.PaneIndicatorFactory = null;
-            dockPanel.Extender.PanelIndicatorFactory = null;
-            dockPanel.Extender.DockOutlineFactory = null;
-            dockPanel.Skin = CreateVisualStudio2003();
+            Extender.AutoHideStripFactory = new VS2003AutoHideStripFactory();
+            Extender.AutoHideWindowFactory = new VS2005AutoHideWindowFactory();
+            Extender.DockPaneCaptionFactory = new VS2003DockPaneCaptionFactory();
+            Extender.DockPaneStripFactory = new VS2003DockPaneStripFactory();
+            Extender.DockPaneSplitterControlFactory = new VS2005DockPaneSplitterControlFactory();
+            Extender.WindowSplitterControlFactory = new VS2005WindowSplitterControlFactory();
+            Extender.DockWindowFactory = new VS2005DockWindowFactory();
+            Extender.PaneIndicatorFactory = new VS2005PaneIndicatorFactory();
+            Extender.PanelIndicatorFactory = new VS2005PanelIndicatorFactory();
+            Extender.DockOutlineFactory = new VS2005DockOutlineFactory();
+            Extender.DockIndicatorFactory = new VS2005DockIndicatorFactory();
         }
 
         internal static DockPanelSkin CreateVisualStudio2003()

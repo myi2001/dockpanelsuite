@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.ComponentModel;
 
 namespace WeifenLuo.WinFormsUI.Docking
 {
@@ -36,6 +31,7 @@ namespace WeifenLuo.WinFormsUI.Docking
 
                 public void Close()
                 {
+                    DragForm.Bounds = Rectangle.Empty;
                     DragForm.Close();
                 }
 
@@ -159,6 +155,9 @@ namespace WeifenLuo.WinFormsUI.Docking
 
         public void BeginDrag(ISplitterDragSource dragSource, Rectangle rectSplitter)
         {
+            if (!AllowChangeLayout)
+                return;
+
             GetSplitterDragHandler().BeginDrag(dragSource, rectSplitter);
         }
     }
